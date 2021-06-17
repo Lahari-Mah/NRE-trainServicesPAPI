@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:train-delay-details-sapi="http://www.mulesoft.org/schema/mule/train-delay-details-sapi"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/train-delay-details-sapi http://www.mulesoft.org/schema/mule/train-delay-details-sapi/current/mule-train-delay-details-sapi.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<flow name="train-delayDetailsRetrievalFlow" doc:id="1d3c08ef-8f36-429f-8d2a-7df41eed1bdb" >
+		<json-logger:logger doc:id="dcf72484-9610-43de-a21c-6f916f1661a9" doc:name="trainDelayDetailsRetrieval_Start" config-ref="JSON_Logger_Config" message="trainDelayDetailsRetrieval Start Logger"/>
+		<try doc:name="Try" doc:id="ad78a56d-81bd-499c-a0cf-474fb2b25377" >
+			<train-delay-details-sapi:get-subscriptions doc:name="SubscriptionsInfo" doc:id="2ae306f0-40ac-42cf-8bee-a2187d33bcc2" config-ref="Train_delay_details_SAPI_Config" target="subsPayload" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="65d7dc85-aacd-4b99-8e26-386cec9610ca" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Message" doc:id="eb95a3c9-6e8e-4492-8dd2-b1f2de727ea4" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="SubscriptionInfoError" doc:id="1a33d53e-697a-4ac9-bbd1-229aaefae73d" config-ref="JSON_Logger_Config" message="SubscriptionInfoError Logger" priority="ERROR"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="SubscriptionInfo_Logger" doc:id="167a5359-b969-47dc-bdc3-e88c66afc7ad" config-ref="JSON_Logger_Config" message="Subscriptions Information Recieved" tracePoint="FLOW"/>
+		<foreach doc:name="Subscription_ForEach" doc:id="f6726732-7dd6-4320-9fad-6e28228d7914" collection="#[vars.subsPayload]">
+		<ee:transform doc:name="SubscriptionPayload" doc:id="9075b2fd-0db1-4235-9b4e-d68f5a99cdf6" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="dbVar" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"fromTime": payload.from_time,
+	"toTime": payload.to_time,
+	"fromStation": payload.from_station,
+	"toStation": payload.to_station,
+	"customerId": payload.customer_id,
+	"subscriptionId": payload.subscription_id,
+	"emailId": payload.email_id
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<try doc:name="Try" doc:id="3ba39638-adaa-432e-b25d-7ba9ca9cbe07" >
+				<train-delay-details-sapi:create-delay doc:name="SoapURLData" doc:id="f0965068-e83c-4fc3-ae8b-2fe6866d4d65" config-ref="Train_delay_details_SAPI_Config" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="dce88b76-4da9-496b-ac0c-28645ecc50bd" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+						<ee:transform doc:name="Error Message" doc:id="599a9313-42de-4474-ad47-06e87bbb71ae" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<json-logger:logger doc:name="SOAP Url_ErrorLogger" doc:id="ac5af594-a6a1-4028-9990-fbfcb8ed918b" config-ref="JSON_Logger_Config" message="Soap URL Consumption Error Logs" priority="ERROR"/>
+					</on-error-continue>
+				</error-handler>
+			</try>
+			<json-logger:logger doc:name="trainDelayDetailsRetrieval_AfterWSDL" doc:id="786353b4-ab15-437e-8471-d57edf428cce" config-ref="JSON_Logger_Config" message="trainDelayDetailsRetrieval After WSDL " tracePoint="FLOW" />
+			<ee:transform doc:name="XMLPayloadData" doc:id="b8c178af-cd68-4706-90db-50f9109f9ff0">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+
+GetStationBoardResult: 
+	payload.body.GetDepBoardWithDetailsResponse.*GetStationBoardResult 
+			map(payload01, index) -> {
+					OriginName: payload01.locationName,
+					OriginCRS: payload01.crs,
+					DestinationName: payload01.filterLocationName,
+					DestinationCRS: payload01.filtercrs
+		}
+				
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="services" ><![CDATA[%dw 2.0
+output application/json
+---
+
+payload.body.GetDepBoardWithDetailsResponse.GetStationBoardResult.trainServices.*service
+	
+]]></ee:set-variable>
+					<ee:set-variable variableName="delayMessage" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.body.GetDepBoardWithDetailsResponse.GetStationBoardResult.nrccMessages.message]]></ee:set-variable>
+				</ee:variables>
+		</ee:transform>
+			<json-logger:logger doc:name="trainDelayDetails_AfterSoapConsume" doc:id="892f9731-b2be-476f-918a-14757be00f02" config-ref="JSON_Logger_Config" message="TrainDelayDetails AfterSoapConsume Logger" tracePoint="AFTER_TRANSFORM"/>
+			<choice doc:name="serviceCheck" doc:id="9c6eaffa-c34d-407d-8247-4d7dee5811a8" >
+				<when expression="#[vars.services != null]">
+					<flow-ref doc:name="train-services-calculationFlow" doc:id="73389a22-afdf-4f3b-865f-b426694ef10a" name="train-services-calculationFlow" />
+				</when>
+				<otherwise >
+					<flow-ref doc:name="trainNoServiceAvailableFlow" doc:id="02afa50d-c0d1-43a8-86ba-dd3dd51321a9" name="trainNoServiceAvailableFlow"/>
+				</otherwise>
+			</choice>
+		</foreach>
+		<ee:transform doc:name="SubscriptionDetailsPayload" doc:id="dffbef05-d5c3-4fb4-93e5-a6f2a3581a9c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.subsPayload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="trainDelayDetails_End" doc:id="b656b7be-3177-49e5-97d2-5d420d8733a9" config-ref="JSON_Logger_Config" message="TrainDelayDetails End Logger" tracePoint="END" priority="ERROR"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c7f5ea6c-ff81-464e-9374-cda4a663e73d" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<ee:transform doc:name="Error Description" doc:id="18376aa3-edfe-43c6-8fb3-7b2bcca24c11" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+error.detailedDescription]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="TrainDelay_RetrievalPAPI_ErrorLogger" doc:id="edc4cee4-140e-42ac-a469-c5e7fd310991" config-ref="JSON_Logger_Config" message="Train Delay Retrieval PAPI Error Logs"/>
+			</on-error-continue>
+		</error-handler>
+		</flow>
+		
+		<flow name="trainNoServiceAvailableFlow" doc:id="54dda3f7-3fd7-4b65-a25b-bc71d7fceab6" >
+		<ee:transform doc:name="TrainNoServiceAvailable" doc:id="e53ed61d-f57b-4d6e-9f58-346766efaa8d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "No service available on chosen subscription"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="NoServiceAvailable_End" doc:id="f9ef9cfb-c4cf-4976-b0d1-fbbcd3d8c062" config-ref="JSON_Logger_Config" message="NoServiceAvailable End Logger" tracePoint="END"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="632e0399-bbe4-4242-8354-db45ab559551" type="ANY">
+				<ee:transform doc:name="Error Message" doc:id="7ba6f031-e408-4290-b533-02138fbe5f64" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="NoService_Available_ErrorLogger" doc:id="e8130563-3cc9-4ad2-b4bd-41af796a07ea" config-ref="JSON_Logger_Config" message="NoService Available ErrorLogs" priority="ERROR"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="train-delay-details-papiFlow" doc:id="5ffe9485-05b3-4c56-a27b-c0f04da5cc39" >
+		<scheduler doc:name="Scheduler-Every 30 Minutes" doc:id="1e248e4f-faa3-4013-b565-469dd6a5601f">
+			<scheduling-strategy>
+				<fixed-frequency frequency="30" timeUnit="MINUTES" />
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="train-delayDetailsRetrievalFlow" doc:id="30738bbd-a29b-4d74-acc6-c434cb9e4742" name="train-delayDetailsRetrievalFlow"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a12d8ee8-70c7-4abd-976f-8288eda82cf0" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<ee:transform doc:name="Error Description" doc:id="0fe9bfff-6b62-4eea-944e-2380450766fd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="TrainDelay_Scheduler_ErrorLogger" doc:id="7df63644-4637-4add-a212-ef59fa0e3902" config-ref="JSON_Logger_Config" message="Train Delay Scheduler Error Logs"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="train-services-calculationFlow" doc:id="0089d8b7-8056-4c11-b860-8faf67fbbc6c" >
+		<foreach doc:name="TrainServices_ForEach" doc:id="5aefc02b-07f2-48a2-a977-cd0359fe75a7" collection="#[vars.services]">
+				<json-logger:logger doc:name="Services Check Before Transform" doc:id="9acbdba8-e635-41de-a009-0b20d9a4ea3d" config-ref="JSON_Logger_Config" message="Services Check Before Transform Logger" tracePoint="BEFORE_TRANSFORM"/>
+			<ee:transform doc:name="PayloadtoJson" doc:id="0b77a1fc-d78e-46e7-ae37-ef7e0bbd12e0">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+
+payload
+	
+]]></ee:set-payload>
+					</ee:message>
+				<ee:variables >
+				</ee:variables>
+				</ee:transform>
+			<choice doc:name="Choice" doc:id="ffdbd62a-8519-4fa3-881e-533c5a79cfb4">
+					<when expression="#[(payload.etd != 'On time' and payload.etd != 'Cancelled' and payload.etd != 'Delayed')]" >
+					<flow-ref doc:name="DelayNotificationFlow" doc:id="990d468a-e918-49d7-a8c2-1f5885b8e726" name="train-delayNotificationFlow"/>
+				</when>
+				<when expression="#[payload.etd == 'Cancelled' or payload.etd == 'Delayed']">
+					<flow-ref doc:name="Delay-CancelNotificationFlow" doc:id="0e21d2c3-f756-4814-9978-e3ed3e2a1b88" name="train-cancelNotificationFlow"/>
+				</when>
+				<otherwise >
+					<flow-ref doc:name="TrainDelayDefaultFlow" doc:id="31a7aee2-7612-4239-9081-2bfee9800cf1" name="alertConnector-DefaultFlow"/>
+				</otherwise>
+				</choice>
+				<json-logger:logger doc:name="Services After Choice" doc:id="06fd9ed5-9f21-4e3a-970d-d495f0cb1162" config-ref="JSON_Logger_Config" message="Services After Choice Logger" tracePoint="END"/>
+			<logger level="INFO" doc:name="Logger" doc:id="cfe7dc88-0a73-4bc6-a2ba-20d438e4fea3" message="#[payload]" />
+			</foreach>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="237be857-287c-4722-82d1-7666a5c28a9a" type="ANY">
+				<ee:transform doc:name="Error Description" doc:id="d813c24e-0d23-4b47-8f53-f0eb15ca67cc" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="TrainServices_Calculation_ErrorLogger" doc:id="4266a803-7489-4859-a357-bde3bb0207c3" config-ref="JSON_Logger_Config" message="Train Services Calculation Error Logs"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

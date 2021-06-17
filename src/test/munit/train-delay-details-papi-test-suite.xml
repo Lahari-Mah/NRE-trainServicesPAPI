@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<munit:config name="train-delay-details-papi-test-suite.xml" />
+	<munit:test name="train-delayDetails_CancelFlowTest" doc:id="b09e43cb-b9d0-44ab-8596-26134a4aa1b8" description="Test" timeOut="120000">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="SoapUI" doc:id="2f8fa21e-c748-4284-b396-ff764a75e751" processor="train-delay-details-sapi:create-delay">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f0965068-e83c-4fc3-ae8b-2fe6866d4d65" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="PAPI-Cancel-setEvent" />
+			</munit-tools:mock-when>
+			<flow-ref doc:name="train-PAPI-MocksFlow" doc:id="7e0c9451-347d-4dd7-a161-33caad0e78b9" name="train-PAPI-MocksFlow"/>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to train-delayDetailsRetrievalFlow" doc:id="b67a0bee-8914-4283-aaa5-c74c91b05471" name="train-delayDetailsRetrievalFlow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="notNull" doc:id="266f42bf-ddc4-4be1-90aa-d4f41b955f0a" message="#['Not as expected']" expression="#[payload]" is="#[MunitTools::notNullValue()]"/>
+		</munit:validation>
+	</munit:test>
+	<flow name="train-PAPI-MocksFlow" doc:id="288dfc19-e373-4137-b105-74e7d75db9be" >
+		<munit-tools:mock-when doc:name="DBSubscriptions" doc:id="ff0d846f-564a-409f-89d3-d844d74ac33f" processor="train-delay-details-sapi:get-subscriptions">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="2ae306f0-40ac-42cf-8bee-a2187d33bcc2" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[&#10;output application/json&#10;---&#10;[&#10;{&#10;    "from_time": "07:40:00",&#10;    "from_station": "LBG",&#10;    "to_station": "CST",&#10;    "to_time": "08:40:00",&#10;    "journey_date": "2021-06-06",&#10;    "customer_id": "1",&#10;   "subscription_id": "2",&#10;   "email_id": "abcd@gmail.com"&#10; }&#10;]&#10;]' mediaType="application/json" />
+					<munit-tools:variables>
+						<munit-tools:variable key="subsPayload" value='#[&#10;output application/json&#10;---&#10;[&#10;{&#10;    "from_time": "07:40:00",&#10;    "from_station": "LBG",&#10;    "to_station": "CST",&#10;    "to_time": "08:40:00",&#10;    "journey_date": "2021-06-06",&#10;    "customer_id": "1",&#10;   "subscription_id": "2",&#10;   "email_id": "abcd@gmail.com"&#10; }&#10;]&#10;]' mediaType="application/json" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		<munit-tools:mock-when doc:name="alertId" doc:id="409dea9e-973e-4014-9575-73fd6e574de0" processor="national-railway-train-services-api:create-alert-by-id-subscription-id">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="4caeac80-bf68-4f97-862d-1d9b767c4c98" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[&#10;output application/json&#10;---&#10;"Alert Details"&#10;]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		<munit-tools:mock-when doc:name="emailConn" doc:id="6819ce85-4985-4579-83a7-92c67b7e491d" processor="train-delay-details-sapi:create-email-by-email-id">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="2d0d992b-6c10-412b-a89c-261894314e68" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[&#10;output application/json&#10;---&#10;"Email sent"&#10;]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		<munit-tools:mock-when doc:name="emailUpdate" doc:id="7230cc7b-0c9a-4d2d-b9bb-ec845caf89e1" processor="national-railway-train-services-api:update-alert-by-id-subscription-id-alert-id">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="bfb7c65d-b89e-4e18-a108-b3bd225be565" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[&#10;output application/json&#10;---&#10;"Email Updated" &#10;]' mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+	</flow>
+	<flow name="PAPI-Cancel-setEvent" doc:id="d53f8439-c214-4d6f-ae73-2daf86d41c3c" >
+		<ee:transform doc:name="PayloadXML" doc:id="64652c89-f746-4bfa-9a30-5d30422f3044" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "body": {
+    "GetDepBoardWithDetailsResponse": {
+      "GetStationBoardResult": {
+        "generatedAt": "2021-05-27T05:58:00.3122244+01:00",
+        "locationName": "London Bridge",
+        "crs": "LBG",
+        "filterLocationName": "London Cannon Street",
+        "filtercrs": "CST",
+        "nrccMessages": {
+          "message": "\nA member of signalling staff has been taken ill at Bognor Regis. Consequently, trains in the area may be cancelled or revised. More details can be found in <a href=\"http://nationalrail.co.uk/service_disruptions/272026.aspx \">Latest Travel News.</a>"
+        },
+        "platformAvailable": "true",
+        "trainServices": {
+          "service": {
+            "std": "00:24",
+            "etd": "On time",
+            "platform": "3",
+            "operator": "Southeastern",
+            "operatorCode": "SE",
+            "serviceType": "train",
+            "length": "10",
+            "serviceID": "eZvJOmXIugxJr2nArCuzNg==",
+            "rsid": "SE556800",
+            "origin": {
+              "location": {
+                "locationName": "Crayford",
+                "crs": "CRY"
+              }
+            },
+            "destination": {
+              "location": {
+                "locationName": "London Cannon Street",
+                "crs": "CST"
+              }
+            },
+            "formation": {
+              "coaches": {
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Standard"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                }
+              }
+            },
+            "subsequentCallingPoints": {
+              "callingPointList": {
+                "callingPoint": {
+                  "locationName": "London Cannon Street",
+                  "crs": "CST",
+                  "st": "06:14",
+                  "et": "On time",
+                  "length": "10",
+                  "formation": {
+                    "coaches": {
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Standard"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "service": {
+            "std": "00:43",
+            "etd": "Cancelled",
+            "platform": "3",
+            "operator": "Southeastern",
+            "operatorCode": "SE",
+            "serviceType": "train",
+            "length": "8",
+            "cancelReason": "This train has been cancelled because of a derailed train",
+            "serviceID": "wL2KIKqaJee9RYZuxsTWHg==",
+            "rsid": "SE573600",
+            "origin": {
+              "location": {
+                "locationName": "Orpington",
+                "crs": "ORP"
+              }
+            },
+            "destination": {
+              "location": {
+                "locationName": "London Cannon Street",
+                "crs": "CST"
+              }
+            },
+            "formation": {
+              "coaches": {
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                }
+              }
+            },
+            "subsequentCallingPoints": {
+              "callingPointList": {
+                "callingPoint": {
+                  "locationName": "London Cannon Street",
+                  "crs": "CST",
+                  "st": "06:18",
+                  "et": "On time",
+                  "length": "8",
+                  "formation": {
+                    "coaches": {
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+       }
+    }
+   }
+  }
+ }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<munit:test name="train-delayDetails_DelayedFlowTest" doc:id="323a322c-7f25-40f5-916f-2bbe7343801a" description="Test" timeOut="1200000">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="SoapUI" doc:id="9ef7829b-0a41-4421-9943-c517bd214cd9" processor="train-delay-details-sapi:create-delay">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f0965068-e83c-4fc3-ae8b-2fe6866d4d65" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="PAPI-Delay-setEvent" />
+			</munit-tools:mock-when>
+			<flow-ref doc:name="train-PAPI-MocksFlow" doc:id="61327693-a330-4f72-9580-12e73cb62794" name="train-PAPI-MocksFlow"/>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to train-delayDetailsRetrievalFlow" doc:id="e5af4cf9-d777-46b7-9361-a5d773690957" name="train-delayDetailsRetrievalFlow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="notNull" doc:id="0b21afbb-3eb4-483f-85b4-f6c47f482442" message="#['Not as expected']" expression="#[payload]" is="#[MunitTools::notNullValue()]"/>
+		</munit:validation>
+	</munit:test>
+	<flow name="PAPI-Delay-setEvent" doc:id="be595da8-6b39-4f5c-a3f4-04727ff973a6" >
+		<ee:transform doc:name="PayloadXML" doc:id="47b9327a-c11d-479a-90f7-89c03e8126c8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "body": {
+    "GetDepBoardWithDetailsResponse": {
+      "GetStationBoardResult": {
+        "generatedAt": "2021-05-27T05:58:00.3122244+01:00",
+        "locationName": "London Bridge",
+        "crs": "LBG",
+        "filterLocationName": "London Cannon Street",
+        "filtercrs": "CST",
+        "nrccMessages": {
+          "message": "\nA member of signalling staff has been taken ill at Bognor Regis. Consequently, trains in the area may be cancelled or revised. More details can be found in <a href=\"http://nationalrail.co.uk/service_disruptions/272026.aspx \">Latest Travel News.</a>"
+        },
+        "platformAvailable": "true",
+        "trainServices": {
+          "service": {
+            "std": "00:24",
+            "etd": "On time",
+            "platform": "3",
+            "operator": "Southeastern",
+            "operatorCode": "SE",
+            "serviceType": "train",
+            "length": "10",
+            "serviceID": "eZvJOmXIugxJr2nArCuzNg==",
+            "rsid": "SE556800",
+            "origin": {
+              "location": {
+                "locationName": "Crayford",
+                "crs": "CRY"
+              }
+            },
+            "destination": {
+              "location": {
+                "locationName": "London Cannon Street",
+                "crs": "CST"
+              }
+            },
+            "formation": {
+              "coaches": {
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Standard"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                }
+              }
+            },
+            "subsequentCallingPoints": {
+              "callingPointList": {
+                "callingPoint": {
+                  "locationName": "London Cannon Street",
+                  "crs": "CST",
+                  "st": "06:14",
+                  "et": "On time",
+                  "length": "10",
+                  "formation": {
+                    "coaches": {
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Standard"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "service": {
+            "std": "00:43",
+            "etd": "00:44",
+            "platform": "3",
+            "operator": "Southeastern",
+            "operatorCode": "SE",
+            "serviceType": "train",
+            "length": "8",
+            "cancelReason": "This train has been cancelled because of a derailed train",
+            "serviceID": "wL2KIKqaJee9RYZuxsTWHg==",
+            "rsid": "SE573600",
+            "origin": {
+              "location": {
+                "locationName": "Orpington",
+                "crs": "ORP"
+              }
+            },
+            "destination": {
+              "location": {
+                "locationName": "London Cannon Street",
+                "crs": "CST"
+              }
+            },
+            "formation": {
+              "coaches": {
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "Accessible"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                },
+                "coach": {
+                  "coachClass": "Standard",
+                  "toilet": "None"
+                }
+              }
+            },
+            "subsequentCallingPoints": {
+              "callingPointList": {
+                "callingPoint": {
+                  "locationName": "London Cannon Street",
+                  "crs": "CST",
+                  "st": "06:18",
+                  "et": "On time",
+                  "length": "8",
+                  "formation": {
+                    "coaches": {
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "Accessible"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      },
+                      "coach": {
+                        "coachClass": "Standard",
+                        "toilet": "None"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+       }
+    }
+   }
+  }
+ }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+
+</mule>

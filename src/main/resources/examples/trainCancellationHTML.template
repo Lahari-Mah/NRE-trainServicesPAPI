@@ -1,0 +1,21 @@
+<html>
+<body>
+<h2>National Railway Delay Tracker</h2>
+<table border=4>
+<tr>
+<th> Origin Location </th>
+<th> Destination Location </th>
+<th> Service Type </th>
+<th> Delay Status </th>
+<th> Delay Reason </th>
+</tr>
+<tr>
+<td> #[payload.originLocation] </td>
+<td> #[payload.destinationLocation] </td>
+<td> #[payload.serviceType] </td>
+<td> #[payload.delayStatus] </td>
+<td> #[payload.trainDelayReason] </td>
+</tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:train-delay-details-sapi="http://www.mulesoft.org/schema/mule/train-delay-details-sapi"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:national-railway-train-services-api="http://www.mulesoft.org/schema/mule/national-railway-train-services-api" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/national-railway-train-services-api http://www.mulesoft.org/schema/mule/national-railway-train-services-api/current/mule-national-railway-train-services-api.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/train-delay-details-sapi http://www.mulesoft.org/schema/mule/train-delay-details-sapi/current/mule-train-delay-details-sapi.xsd">
+ 
+ <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6af0a435-1a6a-4c3e-9cd0-916737bc7e82" >
+		<http:listener-connection host="0.0.0.0" port="8084" />
+	</http:listener-config>
+	<flow name="train-cancelNotificationFlow" doc:id="d18fc05d-49cd-4352-97d4-8d3906bc9ad9" >
+		<json-logger:logger doc:name="CancelledDetails_Start" doc:id="fa799b19-40f6-4570-8fe6-691d6fa4e7ba" config-ref="JSON_Logger_Config" message="CancelledDetails Start Logger" />
+		<ee:transform doc:name="CancelledDataNotification" doc:id="59bce518-e42c-49e9-971b-0ef5feed285c">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	customerId: vars.dbVar.'customerId',
+	subscriptionId: vars.dbVar.'subscriptionId',
+	originLocation: vars.dbVar.'fromStation',
+	fromTime: vars.dbVar.'fromTime',
+	toTime: vars.dbVar.'toTime',
+	destinationLocation: vars.dbVar.'toStation',
+	emailId: vars.dbVar.'emailId',
+	serviceType: payload.serviceType,
+	serviceId: payload.serviceID,
+	delayStatus: payload.etd,
+	(trainDelayReason: payload.cancelReason) if(payload.cancelReason != null),
+	(trainDelayReason: vars.delayMessage) if(payload.cancelReason == null)
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+		<try doc:name="Try" doc:id="73f97c33-dc4a-4106-abf6-b006d47ed5f0" >
+			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="4caeac80-bf68-4f97-862d-1d9b767c4c98" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ec48a51d-6213-4dc9-8147-9db57586a7f4" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:INTERNAL_SERVER_ERROR, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_FOUND, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:RETRY_EXHAUSTED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SERVICE_UNAVAILABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Message" doc:id="e8c5b654-18c0-421a-baea-089749ed2950" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="CancelledDetails_AfterAlertConnector" doc:id="83d5909a-771d-4514-ae11-a720a6b96db4" config-ref="JSON_Logger_Config" message="CancelledDetails AfterAlertConnector" tracePoint="FLOW" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="AlertDetailsInsertion_Logger" doc:id="4dd4623b-8e43-4b44-b9c4-d0e86f765b97" config-ref="JSON_Logger_Config" message="Alert Cancelled Details Inserted Successfully" tracePoint="FLOW"/>
+		<try doc:name="Try" doc:id="914b9f79-9095-492b-8d8e-32d329b1fee5">
+			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="2d0d992b-6c10-412b-a89c-261894314e68" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector">
+			</train-delay-details-sapi:create-email-by-email-id>
+			<error-handler>
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a19af12f-c4b1-4e73-9a24-ae35c4adecc8" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Message" doc:id="a9d511bf-1cb2-41b8-9a60-466ee666546e" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="CancelledDetails_AfterEmailConnector" doc:id="3ee05575-1743-478b-9287-847a92952ed1" config-ref="JSON_Logger_Config" message="CancelledDetails AfterEmailConnector Logger" tracePoint="FLOW" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<flow-ref doc:name="alertEmail-UpdateConnectorFlow" doc:id="3506f0ed-1c54-49db-b0b8-b2c2709631e5" name="alertEmail-UpdateConnectorFlow" />
+		<json-logger:logger doc:name="CancelledDetails_End" doc:id="da004e1e-ed15-4c8f-9363-93604d076f4a" config-ref="JSON_Logger_Config" message="CancelledDetails End Logger" tracePoint="FLOW" priority="ERROR" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b770d0bf-0de5-4d45-94b8-22eb65b045c1" type="ANY">
+				<ee:transform doc:name="Error Message" doc:id="4527589c-3202-4eac-a306-37a6be5df772" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="TrainCancel_Notification_ErrorLogger" doc:id="4f094caa-d952-47f1-b2bc-953472d8a6c2" config-ref="JSON_Logger_Config" message="Train Cancel Notification PAPI Error Logs" priority="ERROR"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+		
+	<flow name="alertConnector-EmailNotificationFlow" doc:id="463161fe-3eca-4a8f-bb5a-a8e140a759b7" >
+		<json-logger:logger doc:name="JSonLogger" doc:id="be5aafae-dd96-400d-8191-69ac1f79e129" config-ref="JSON_Logger_Config" message="Json"/>
+		<national-railway-train-services-api:get-alerts-by-id-subscription-id doc:name="Get alerts by id subscription id" doc:id="a3ca5a51-528c-4c55-83dc-971dc99d21c3" config-ref="National_Railway_Train_Services_API_Config" id="#[vars.dbVar.customerId]" subscription-id="#[vars.dbVar.subscriptionId]" target="allAlertDetails"/>
+		<ee:transform doc:name="Transform Message" doc:id="268ecbfc-b27a-4bf2-8776-2d7592b5acd9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.allAlertDetails]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="alertId" doc:id="87cd0eac-553a-4326-b55a-824d893fa3f1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+
+if(payload == null){
+	"alertId": vars.alertPayload ++ ','
+}
+else{
+	alertId: [payload default ''++ vars.alertPayload]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="7e8fd933-bc52-4792-9626-cb91ddc74baa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+	payload map(payload01,index) -> {
+		"originLocation": payload01.origin_location,
+		"destinationLocation": payload01.destination_location,
+		"fromTime": vars.dbVar.'fromTime',
+		"toTime": vars.dbvar.'toTime',
+		"serviceType": payload01.service_type,
+		"serviceId": payload01.service_id,
+		"delayStatus": payload01.delay_status,
+		"delayTime": payload01.delay_time,
+		"trainDelayReason": payload01.train_delay_reason
+	}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Logger" doc:id="7fb2f0c9-f93e-4667-9436-96f51e8f9e5d" config-ref="JSON_Logger_Config" message="Modify"/>
+	</flow>
+	<flow name="alertEmail-UpdateConnectorFlow" doc:id="c3b991df-6eb8-4cea-adf6-fcd3057586a9" >
+		<json-logger:logger doc:name="AlertEmailUpdateConnectorFlow" doc:id="14add62a-923c-4523-b613-ba44bd5f95d9" config-ref="JSON_Logger_Config" message="AlertEmailUpdateConnector Start Logger"/>
+		<try doc:name="Try" doc:id="d5b6a09f-b082-4a36-84a3-34cf4e2f20fe" >
+			<national-railway-train-services-api:update-alert-by-id-subscription-id-alert-id doc:name="Update alert by id subscription id alert id" doc:id="bfb7c65d-b89e-4e18-a108-b3bd225be565" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" alert-id="#[vars.alertPayload.'alertId']" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="245ed265-552d-4029-a122-84c6c43050b3" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<json-logger:logger doc:name="AlertEmailUpdateConnector_End" doc:id="5e60ac82-fdda-4f43-bb32-d4a11e7b9224" config-ref="JSON_Logger_Config" message="AlertEmailUpdateConnectorFlow End Logger" tracePoint="END" priority="ERROR"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="AlertEmailUpdate_End" doc:id="3317cdc6-001d-4f97-a98c-2b9338c13c56" config-ref="JSON_Logger_Config" message="Alert Email Flag updated Successfully" tracePoint="END"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7818acfe-24f3-4b8c-8d94-fa4bfb7366db" type="ANY">
+				<ee:transform doc:name="Error Message" doc:id="3a3c43b9-2105-41ae-b2bc-84d19d4c8daf" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="AlertEmail_FlagUpdate_ErrorLogger" doc:id="c17766e1-b914-481b-a2a9-d0dbfa9e3592" config-ref="JSON_Logger_Config" message="Alert Email Flag Update Error Logs"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="train-delayNotificationFlow" doc:id="23cffa90-4572-4aa2-a4f1-5df7a707495b" >
+		<json-logger:logger doc:name="DelayDetails_Start" doc:id="f65c8a1c-8f33-4686-b746-0e4f1cc42c41" config-ref="JSON_Logger_Config" message="DelayDetails Inserted Start Logger"/>
+		<ee:transform doc:name="DelayDataNotification" doc:id="d61b4938-0525-4e19-b255-6178a08a7404" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	customerId: vars.dbVar.'customerId',
+	subscriptionId: vars.dbVar.'subscriptionId',
+	originLocation: vars.dbVar.'fromStation' as String,
+	destinationLocation: vars.dbVar.'toStation',
+	fromTime: vars.dbVar.'fromTime',
+	toTime: vars.dbVar.'toTime',
+	emailId: vars.dbVar.'emailId',
+	serviceType: payload.serviceType,
+	serviceId: payload.serviceID,
+	delayStatus: "Delayed",
+	delayTime: (((payload.etd default '0') - (payload.std default '0'))/60)as Number,
+	(trainDelayReason: payload.delayReason) if(payload.delayReason != null),
+	(trainDelayReason: vars.delayMessage) if(payload.delayReason == null)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<try doc:name="Try" doc:id="bda75079-329a-4043-9296-8a1d3ae5d405" >
+			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="2f540e3e-d33f-4d06-adf7-60a5ab6d3c90" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f248dc2d-e3f8-48ab-b3c8-922419d9f3d3" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Message" doc:id="e67ea3c7-8e46-4b11-9ffe-627de55b2b9b" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="DelayDetails_AfterAlertConnector" doc:id="49a9b7d0-b2df-42eb-b607-6e99b419ad4b" config-ref="JSON_Logger_Config" message="DelayDetails AfterAlertConnector _Error Logger" tracePoint="FLOW" priority="ERROR"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="AlertDelayDetails_Logger" doc:id="020112a5-426d-4813-bc7f-cb160fc06c39" config-ref="JSON_Logger_Config" message="Alert Delay Details Inserted" tracePoint="FLOW"/>
+		<try doc:name="Try" doc:id="d81a80df-6235-48f9-a355-08954771a07d" >
+			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="bc67a117-ec52-4b58-bf73-014dc5f302fd" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector"/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="be58114d-45ca-46ed-954e-7c1896af6e6f" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Message" doc:id="4ff8ddac-4256-4f12-890a-269f06d55006" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="DelayDetails_AfterEmailNotification" doc:id="d5086331-b54f-415b-89d1-7f9d89d6ff11" config-ref="JSON_Logger_Config" message="DelayDetails AfterEmailNotification Logger" tracePoint="FLOW" priority="ERROR"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<flow-ref doc:name="alertEmail-UpdateConnectorFlow" doc:id="c3955ea0-70c7-47b4-af3b-ee57418627ce" name="alertEmail-UpdateConnectorFlow"/>
+		<json-logger:logger doc:name="DelayDetails_End" doc:id="2a7620fa-f268-4d61-9554-fe13ac83214d" config-ref="JSON_Logger_Config" message="Delay Details Insertion End" tracePoint="END"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="67505161-6748-4193-9dda-2a8a1da2eb50" type="ANY">
+				<ee:transform doc:name="Error Message" doc:id="b21cf1fb-be38-4df4-9a55-58f1db1af5f9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="TrainDelay_Notification_ErrorLogger" doc:id="c98550f1-331b-4a75-ba97-98872362a32e" config-ref="JSON_Logger_Config" message="Train Delay Email Notification Error Logs" priority="ERROR"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="alertConnector-DefaultFlow" doc:id="f03a261c-6ca0-4729-82e6-c092e1e6a7c6" >
+		<json-logger:logger doc:name="AlertConnector_Default_ErrorLogger" doc:id="f21d0e0e-6ab0-4eac-a0cb-29ca177b5c75" config-ref="JSON_Logger_Config" message="Alert Connector Default Error Logs" priority="ERROR"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="de0b8269-12dc-479b-b91c-e62c7f304a88" type="ANY">
+				<ee:transform doc:name="Error Message" doc:id="27d61127-a609-4326-8eeb-3191a8b65ac7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<json-logger:logger doc:name="AlertDefault_Connector_ErrorLogger" doc:id="1f1c08e5-3d92-42c5-9df3-10a7b7908326" config-ref="JSON_Logger_Config" message="Alert Default Flow Reference Error Logs" priority="ERROR"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

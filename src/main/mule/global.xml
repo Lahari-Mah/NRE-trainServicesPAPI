@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:service-now-nre="http://www.mulesoft.org/schema/mule/service-now-nre" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:nationalrailway-servicenow-sapi="http://www.mulesoft.org/schema/mule/nationalrailway-servicenow-sapi"
+	xmlns:train-delay-details-sapi="http://www.mulesoft.org/schema/mule/train-delay-details-sapi" xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:national-railway-train-services-api="http://www.mulesoft.org/schema/mule/national-railway-train-services-api" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/national-railway-train-services-api http://www.mulesoft.org/schema/mule/national-railway-train-services-api/current/mule-national-railway-train-services-api.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/train-delay-details-sapi http://www.mulesoft.org/schema/mule/train-delay-details-sapi/current/mule-train-delay-details-sapi.xsd
+http://www.mulesoft.org/schema/mule/nationalrailway-servicenow-sapi http://www.mulesoft.org/schema/mule/nationalrailway-servicenow-sapi/current/mule-nationalrailway-servicenow-sapi.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/service-now-nre http://www.mulesoft.org/schema/mule/service-now-nre/current/mule-service-now-nre.xsd">
+	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="28957530-4030-434a-9383-6f0d791a274a" environment="${mule.env}" />
+	<configuration-properties doc:name="Configuration properties" doc:id="04e0ae08-9c92-4647-aa7d-26be90753ba1" file="log.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="c1c394f3-8407-455f-91ce-c8ecb9ba5554" file="config.yaml" />
+	<http:listener-config name="train-delay-papi-HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="bd0650ab-8fa0-45d9-9182-3e1330bb9918" >
+		<http:listener-connection host="0.0.0.0" port="${calc.port}" />
+	</http:listener-config>
+	<national-railway-train-services-api:config name="National_Railway_Train_Services_API_Config" doc:name="National Railway Train Services API Config" doc:id="91a70f2e-b3a3-47fa-b319-bead127d1a6a" property_host="${http.host}" property_port="${usr.port}" property_protocol="${http.protocol}" property_basePath="/api/" property_responseTimeout="3000000"/>
+	<train-delay-details-sapi:config name="Train_delay_details_SAPI_Config" doc:name="Train-delay-details-sapi Config" doc:id="9bf1bfc1-7419-43bb-8dc4-9728d2f6aa18" property_host="${http.host}" property_port="${railway.port}" property_protocol="${http.protocol}" property_basePath="/api/" property_responseTimeout="3000000" />
+	<configuration doc:name="Configuration" doc:id="83d006a9-30be-45e6-8700-96a0428a0c4f" defaultErrorHandler-ref="globalError_Handler" />
+	<service-now-nre:config name="ServiceNow_NRE_Config" doc:name="ServiceNow-NRE Config" doc:id="5b6d51f9-2455-4fb8-81f6-7299e8588452" property_host="${http.host}" property_port="${serviceNow.port}" property_protocol="${http.protocol}" property_responseTimeout="100000" />
+	<error-handler name="globalError_Handler" doc:id="6584daa3-9739-4a4b-afb8-d616063ad4d1" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="65cce00e-443c-48bc-8235-23904217ae71" type="HTTP:INTERNAL_SERVER_ERROR, HTTP:GATEWAY_TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:CONNECTIVITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:FORBIDDEN, NATIONAL-RAILWAY-TRAIN-SERVICES-API:INTERNAL_SERVER_ERROR, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_FOUND, NATIONAL-RAILWAY-TRAIN-SERVICES-API:RETRY_EXHAUSTED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SERVICE_UNAVAILABLE">
+				<try doc:name="Try" doc:id="97edb2cb-07cf-445b-bfba-ebce52a69200">
+					<ee:transform doc:name="IncidentPayload" doc:id="f38981a1-5469-4e1d-9731-3bd0796327b6" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"short_description": error.description,
+	"state": "New",
+	"comments":
+	   "Error Type: " ++ (error.errorType.identifier default '') ++ "\n" 
+	   ++ "Error Location: " ++ (error.failingComponent default ''),
+	"caller_id": "System Administrator"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<service-now-nre:create-incident doc:name="Create incident" doc:id="d507c1e3-8b12-49b2-aaa4-144df09c20b6" config-ref="ServiceNow_NRE_Config"/>
+					<raise-error doc:name="APP:SERVER_CONNECTIVITY" doc:id="9d0c494a-9cae-4b6b-84d2-7efe6f6e610a" type="APP:SERVER_CONNECTIVITY" description='Gateway error issues' />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8d0d989d-9a2b-4b79-ab13-4ba2348c23e2" type="APP:SERVER_CONNECTIVITY">
+						<ee:transform doc:name="ErrorDescription" doc:id="aa8b4774-53a2-4815-9f96-d51c2fa59fe5">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Description": payload.ErrorDescription,
+	"Incident No": payload.number
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<json-logger:logger doc:name="ServiceNow_NationalRailwayPAPI_Logger" doc:id="aa5220a9-ca7f-4390-89f5-6c01430bc65c" config-ref="JSON_Logger_Config" message="ServiceNow National Railway PAPI Logs" />
+					</on-error-continue>
+				</error-handler>
+				</try>
+			</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="184703c5-7789-42fb-abe5-74046cd3647d" type="TRAIN-DELAY-DETAILS-SAPI:CONNECTIVITY,  HTTP:GATEWAY_TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:FORBIDDEN, TRAIN-DELAY-DETAILS-SAPI:NOT_FOUND, TRAIN-DELAY-DETAILS-SAPI:SERVICE_UNAVAILABLE, TRAIN-DELAY-DETAILS-SAPI:INTERNAL_SERVER_ERROR, TRAIN-DELAY-DETAILS-SAPI:RETRY_EXHAUSTED">
+			<try doc:name="Try" doc:id="4bd45ee0-5c6e-4f5e-8844-80375ab82fdc" >
+				<ee:transform doc:name="IncidentPayload" doc:id="1adc06b0-c343-44b8-b541-6543d9f865d5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"short_description": error.description,
+	"state": "New",
+	"comments":
+	   "Error Type: " ++ (error.errorType.identifier default '') ++ "\n" 
+	   ++ "Error Location: " ++ (error.failingComponent default ''),
+	"caller_id": "System Administrator"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<service-now-nre:create-incident doc:name="Create incident" doc:id="a56fcb30-f4bd-4b8d-aebc-c21d8b1d15da" config-ref="ServiceNow_NRE_Config"/>
+				<raise-error doc:name="APP:SERVER_CONNECTIVITY" doc:id="2f7a3782-fee1-4df1-b482-ab3914cac11e" type="APP:SERVER_CONNECTIVITY" description="Gateway error issues"/>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9fdac500-8509-47d8-b278-20b8f2bbe7ed" type="APP:SERVER_CONNECTIVITY">
+						<ee:transform doc:name="Error Message" doc:id="d0a7c4f4-f8a6-4240-b6db-b60176397dae" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Description": payload.ErrorDescription,
+	"Incident No": payload.number
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<json-logger:logger doc:name="ServiceNow_TrainDelayPAPI_ErrorLogger" doc:id="11cad955-90ed-45bf-8cc0-7fd43f5ce9b7" config-ref="JSON_Logger_Config" message="ServiceNow TrainDelayPAPI ErrorLogger" priority="ERROR"/>
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</on-error-propagate>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a58b1d89-0c05-49b8-99f7-f3333ffb9dc8" type="ANY">
+			<ee:transform doc:name="Error Message" doc:id="518a0af3-b3f9-47dd-9027-f99e8a8134ec" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<json-logger:logger doc:name="Global_TrainPAPI_ErrorLogger" doc:id="214407db-dc90-4f3a-9943-59605c95d873" config-ref="JSON_Logger_Config" message="Global_TrainPAPI ErrorLogger" priority="ERROR"/>
+		</on-error-continue>
+	</error-handler>
+</mule>

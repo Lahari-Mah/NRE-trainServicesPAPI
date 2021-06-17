@@ -1,0 +1,15 @@
+http:
+  host: "0.0.0.0"
+  protocol: "HTTP"
+
+calc:
+  port: "8085"
+
+usr:
+  port: "8082"
+  
+railway:
+  port: "8083"
+
+serviceNow:
+  port: "8087"
