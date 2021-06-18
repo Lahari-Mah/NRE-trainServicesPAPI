@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 	<flow name="train-delayDetailsRetrievalFlow" doc:id="1d3c08ef-8f36-429f-8d2a-7df41eed1bdb" >
 		<json-logger:logger doc:id="dcf72484-9610-43de-a21c-6f916f1661a9" doc:name="trainDelayDetailsRetrieval_Start" config-ref="JSON_Logger_Config" message="trainDelayDetailsRetrieval Start Logger"/>
 		<try doc:name="Try" doc:id="ad78a56d-81bd-499c-a0cf-474fb2b25377" >
-			<train-delay-details-sapi:get-subscriptions doc:name="SubscriptionsInfo" doc:id="2ae306f0-40ac-42cf-8bee-a2187d33bcc2" config-ref="Train_delay_details_SAPI_Config" target="subsPayload" />
+			<train-delay-details-sapi:get-subscriptions doc:name="SubscriptionsInfo" doc:id="2ae306f0-40ac-42cf-8bee-a2187d33bcc2" config-ref="Train_delay_details_SAPI_Config" target="subsPayload" client-id="${railway.clientId}" client-secret="${railway.clientSecret}"/>
 			<error-handler >
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="65d7dc85-aacd-4b99-8e26-386cec9610ca" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 					<ee:transform doc:name="Error Message" doc:id="eb95a3c9-6e8e-4492-8dd2-b1f2de727ea4" >
@@ -56,7 +56,7 @@ output application/json
 				</ee:variables>
 			</ee:transform>
 			<try doc:name="Try" doc:id="3ba39638-adaa-432e-b25d-7ba9ca9cbe07" >
-				<train-delay-details-sapi:create-delay doc:name="SoapURLData" doc:id="f0965068-e83c-4fc3-ae8b-2fe6866d4d65" config-ref="Train_delay_details_SAPI_Config" />
+				<train-delay-details-sapi:create-delay doc:name="SoapURLData" doc:id="f0965068-e83c-4fc3-ae8b-2fe6866d4d65" config-ref="Train_delay_details_SAPI_Config" client-id="${railway.clientId}" client-secret="${railway.clientSecret}"/>
 				<error-handler >
 					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="dce88b76-4da9-496b-ac0c-28645ecc50bd" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 						<ee:transform doc:name="Error Message" doc:id="599a9313-42de-4474-ad47-06e87bbb71ae" >

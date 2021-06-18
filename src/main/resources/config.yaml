@@ -7,9 +7,15 @@ calc:
 
 usr:
   port: "8082"
+  clientId: "498af4776f5b4728abb18033899bada3"
+  clientSecret: "7549FF1A280d414abcf48dfB7C4E6321"
   
 railway:
   port: "8083"
+  clientId: "7e6ecb4436b8401f96549b8a69f6d60b"
+  clientSecret: "a00486828e2D4ffBaF33b8B0bB5407aD"
 
 serviceNow:
   port: "8087"
+  clientId: "452e961bff2c4e899f09a3afb5ffa099"
+  clientSecret: "5447C65c460F4a9583f632B26C3c6c7a"

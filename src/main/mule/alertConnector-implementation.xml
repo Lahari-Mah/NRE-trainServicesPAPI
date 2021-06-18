@@ -39,7 +39,7 @@ output application/json
 						</ee:message>
 					</ee:transform>
 		<try doc:name="Try" doc:id="73f97c33-dc4a-4106-abf6-b006d47ed5f0" >
-			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="4caeac80-bf68-4f97-862d-1d9b767c4c98" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" />
+			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="4caeac80-bf68-4f97-862d-1d9b767c4c98" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
 			<error-handler >
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ec48a51d-6213-4dc9-8147-9db57586a7f4" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:INTERNAL_SERVER_ERROR, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_FOUND, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:RETRY_EXHAUSTED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SERVICE_UNAVAILABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 					<ee:transform doc:name="Error Message" doc:id="e8c5b654-18c0-421a-baea-089749ed2950" >
@@ -60,7 +60,7 @@ output application/json
 		</try>
 		<json-logger:logger doc:name="AlertDetailsInsertion_Logger" doc:id="4dd4623b-8e43-4b44-b9c4-d0e86f765b97" config-ref="JSON_Logger_Config" message="Alert Cancelled Details Inserted Successfully" tracePoint="FLOW"/>
 		<try doc:name="Try" doc:id="914b9f79-9095-492b-8d8e-32d329b1fee5">
-			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="2d0d992b-6c10-412b-a89c-261894314e68" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector">
+			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="2d0d992b-6c10-412b-a89c-261894314e68" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector" client-id="${usr.clientId}" client-secret="${usr.clientSecret}">
 			</train-delay-details-sapi:create-email-by-email-id>
 			<error-handler>
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a19af12f-c4b1-4e73-9a24-ae35c4adecc8" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
@@ -103,7 +103,7 @@ output application/json
 		
 	<flow name="alertConnector-EmailNotificationFlow" doc:id="463161fe-3eca-4a8f-bb5a-a8e140a759b7" >
 		<json-logger:logger doc:name="JSonLogger" doc:id="be5aafae-dd96-400d-8191-69ac1f79e129" config-ref="JSON_Logger_Config" message="Json"/>
-		<national-railway-train-services-api:get-alerts-by-id-subscription-id doc:name="Get alerts by id subscription id" doc:id="a3ca5a51-528c-4c55-83dc-971dc99d21c3" config-ref="National_Railway_Train_Services_API_Config" id="#[vars.dbVar.customerId]" subscription-id="#[vars.dbVar.subscriptionId]" target="allAlertDetails"/>
+		<national-railway-train-services-api:get-alerts-by-id-subscription-id doc:name="Get alerts by id subscription id" doc:id="a3ca5a51-528c-4c55-83dc-971dc99d21c3" config-ref="National_Railway_Train_Services_API_Config" id="#[vars.dbVar.customerId]" subscription-id="#[vars.dbVar.subscriptionId]" target="allAlertDetails" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
 		<ee:transform doc:name="Transform Message" doc:id="268ecbfc-b27a-4bf2-8776-2d7592b5acd9" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -151,7 +151,7 @@ output application/json
 	<flow name="alertEmail-UpdateConnectorFlow" doc:id="c3b991df-6eb8-4cea-adf6-fcd3057586a9" >
 		<json-logger:logger doc:name="AlertEmailUpdateConnectorFlow" doc:id="14add62a-923c-4523-b613-ba44bd5f95d9" config-ref="JSON_Logger_Config" message="AlertEmailUpdateConnector Start Logger"/>
 		<try doc:name="Try" doc:id="d5b6a09f-b082-4a36-84a3-34cf4e2f20fe" >
-			<national-railway-train-services-api:update-alert-by-id-subscription-id-alert-id doc:name="Update alert by id subscription id alert id" doc:id="bfb7c65d-b89e-4e18-a108-b3bd225be565" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" alert-id="#[vars.alertPayload.'alertId']" />
+			<national-railway-train-services-api:update-alert-by-id-subscription-id-alert-id doc:name="Update alert by id subscription id alert id" doc:id="bfb7c65d-b89e-4e18-a108-b3bd225be565" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" alert-id="#[vars.alertPayload.'alertId']" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
 			<error-handler >
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="245ed265-552d-4029-a122-84c6c43050b3" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 					<json-logger:logger doc:name="AlertEmailUpdateConnector_End" doc:id="5e60ac82-fdda-4f43-bb32-d4a11e7b9224" config-ref="JSON_Logger_Config" message="AlertEmailUpdateConnectorFlow End Logger" tracePoint="END" priority="ERROR"/>
@@ -202,7 +202,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<try doc:name="Try" doc:id="bda75079-329a-4043-9296-8a1d3ae5d405" >
-			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="2f540e3e-d33f-4d06-adf7-60a5ab6d3c90" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" />
+			<national-railway-train-services-api:create-alert-by-id-subscription-id doc:name="Create alert by id subscription id" doc:id="2f540e3e-d33f-4d06-adf7-60a5ab6d3c90" config-ref="National_Railway_Train_Services_API_Config" id="#[payload.customerId]" subscription-id="#[payload.subscriptionId]" target="alertPayload" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
 			<error-handler >
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f248dc2d-e3f8-48ab-b3c8-922419d9f3d3" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 					<ee:transform doc:name="Error Message" doc:id="e67ea3c7-8e46-4b11-9ffe-627de55b2b9b" >
@@ -223,7 +223,7 @@ output application/json
 		</try>
 		<json-logger:logger doc:name="AlertDelayDetails_Logger" doc:id="020112a5-426d-4813-bc7f-cb160fc06c39" config-ref="JSON_Logger_Config" message="Alert Delay Details Inserted" tracePoint="FLOW"/>
 		<try doc:name="Try" doc:id="d81a80df-6235-48f9-a355-08954771a07d" >
-			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="bc67a117-ec52-4b58-bf73-014dc5f302fd" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector"/>
+			<train-delay-details-sapi:create-email-by-email-id doc:name="Create email by email id" doc:id="bc67a117-ec52-4b58-bf73-014dc5f302fd" config-ref="Train_delay_details_SAPI_Config" email-id="#[payload.emailId]" target="emailConnector" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
 			<error-handler >
 				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="be58114d-45ca-46ed-954e-7c1896af6e6f" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 					<ee:transform doc:name="Error Message" doc:id="4ff8ddac-4256-4f12-890a-269f06d55006" >

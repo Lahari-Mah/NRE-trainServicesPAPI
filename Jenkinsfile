@@ -26,10 +26,10 @@ pipeline
     	}
     }
     
-    stage('Perform Regression Testing'){
+    /***stage('Perform Regression Testing'){
       steps{
     		sh 'newman run /Users/rm/Desktop/NjcLabs/newman/getDBSoapDetails.postman_collection.json'
     	 }
-    }
+    }***/
   }
 }
