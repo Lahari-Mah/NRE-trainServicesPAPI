@@ -201,4 +201,13 @@ type: number]]></types:shape>
       </types:input-event>
     </types:processor-declaration>
   </types:enrichment>
+  <types:enrichment select="#ee29d678-f367-4088-85a2-eda8efb05780">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="message"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
 </types:mule>

@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:train-delay-details-sapi="http://www.mulesoft.org/schema/mule/train-delay-details-sapi"
-	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+<mule xmlns:national-railway-train-services-api="http://www.mulesoft.org/schema/mule/national-railway-train-services-api"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:train-delay-details-sapi="http://www.mulesoft.org/schema/mule/train-delay-details-sapi"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
 http://www.mulesoft.org/schema/mule/train-delay-details-sapi http://www.mulesoft.org/schema/mule/train-delay-details-sapi/current/mule-train-delay-details-sapi.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/national-railway-train-services-api http://www.mulesoft.org/schema/mule/national-railway-train-services-api/current/mule-national-railway-train-services-api.xsd">
 	<flow name="train-delayDetailsRetrievalFlow" doc:id="1d3c08ef-8f36-429f-8d2a-7df41eed1bdb" >
+		<vm:listener queueName="DelayNotify" doc:name="DelayNotificationListener" doc:id="6b81cb1e-b56a-46fd-a6fb-3082e21b103c" config-ref="VM_Config" timeout="500000000"/>
 		<json-logger:logger doc:id="dcf72484-9610-43de-a21c-6f916f1661a9" doc:name="trainDelayDetailsRetrieval_Start" config-ref="JSON_Logger_Config" message="trainDelayDetailsRetrieval Start Logger"/>
 		<try doc:name="Try" doc:id="ad78a56d-81bd-499c-a0cf-474fb2b25377" >
 			<train-delay-details-sapi:get-subscriptions doc:name="SubscriptionsInfo" doc:id="2ae306f0-40ac-42cf-8bee-a2187d33bcc2" config-ref="Train_delay_details_SAPI_Config" target="subsPayload" client-id="${railway.clientId}" client-secret="${railway.clientSecret}"/>
@@ -178,7 +180,9 @@ output application/json
 				<fixed-frequency frequency="30" timeUnit="MINUTES" />
 			</scheduling-strategy>
 		</scheduler>
-		<flow-ref doc:name="train-delayDetailsRetrievalFlow" doc:id="30738bbd-a29b-4d74-acc6-c434cb9e4742" name="train-delayDetailsRetrievalFlow"/>
+		<vm:publish doc:name="DelayNotificationFlow" doc:id="0a45e2b7-5a49-4acf-8d5e-59ca219d84ff" config-ref="VM_Config" queueName="DelayNotify" timeout="50000000"/>
+		<vm:publish doc:name="SFDCFlow" doc:id="d9f1303e-7df4-4366-838b-8ce4a76db7ca" config-ref="VM_Config" queueName="SFDC" timeout="5000000"/>
+		<json-logger:logger doc:name="PAPI_Scheduler EndLogger" doc:id="d9e4d337-9d06-4255-893f-492b01d7b865" config-ref="JSON_Logger_Config" message="PAPI Scheduler End Async Logs" tracePoint="END"/>
 		<error-handler >
 			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a12d8ee8-70c7-4abd-976f-8288eda82cf0" type="TRAIN-DELAY-DETAILS-SAPI:BAD_REQUEST, TRAIN-DELAY-DETAILS-SAPI:METHOD_NOT_ALLOWED, TRAIN-DELAY-DETAILS-SAPI:NOT_ACCEPTABLE, TRAIN-DELAY-DETAILS-SAPI:PARSING, TRAIN-DELAY-DETAILS-SAPI:SECURITY, TRAIN-DELAY-DETAILS-SAPI:TIMEOUT, TRAIN-DELAY-DETAILS-SAPI:TOO_MANY_REQUESTS, TRAIN-DELAY-DETAILS-SAPI:UNAUTHORIZED, TRAIN-DELAY-DETAILS-SAPI:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
 				<ee:transform doc:name="Error Description" doc:id="0fe9bfff-6b62-4eea-944e-2380450766fd" >
@@ -196,6 +200,31 @@ output application/json
 				<json-logger:logger doc:name="TrainDelay_Scheduler_ErrorLogger" doc:id="7df63644-4637-4add-a212-ef59fa0e3902" config-ref="JSON_Logger_Config" message="Train Delay Scheduler Error Logs"/>
 			</on-error-continue>
 		</error-handler>
+	</flow>
+	<flow name="user-Subscriptions-SalesForce-IntegrationFlow" doc:id="2f564fb7-e51a-47f5-964e-55ee4c1ead35" >
+		<vm:listener doc:name="SFDC_Listener" doc:id="499049f5-98d2-476e-a12e-5564b1cb353e" config-ref="VM_Config" queueName="SFDC" timeout="5000000"/>
+		<json-logger:logger doc:name="SFDC PAPI Start Logger" doc:id="6e1aac59-abdb-42ea-afdd-7dc2782525ed" config-ref="JSON_Logger_Config" message="SFDC PAPI Start Logs"/>
+		<try doc:name="Try" doc:id="78aafdbc-38cc-4777-bd59-4f822ab5760b" >
+			<national-railway-train-services-api:get-sfdcs doc:name="Get sfdcs" doc:id="1e1c49f1-f0f1-44c0-8ac9-5698e25b3fc8" config-ref="National_Railway_Train_Services_API_Config" client-id="${usr.clientId}" client-secret="${usr.clientSecret}"/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="93aeb2e2-6b13-41ae-aaa3-56a942721baa" type="NATIONAL-RAILWAY-TRAIN-SERVICES-API:BAD_REQUEST, NATIONAL-RAILWAY-TRAIN-SERVICES-API:METHOD_NOT_ALLOWED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:NOT_ACCEPTABLE, NATIONAL-RAILWAY-TRAIN-SERVICES-API:PARSING, NATIONAL-RAILWAY-TRAIN-SERVICES-API:SECURITY, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TIMEOUT, NATIONAL-RAILWAY-TRAIN-SERVICES-API:TOO_MANY_REQUESTS, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNAUTHORIZED, NATIONAL-RAILWAY-TRAIN-SERVICES-API:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+					<ee:transform doc:name="Error Description" doc:id="37f85b4b-0102-49fb-b3f0-aa8022c66628" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error Type": error.errorType.identifier,
+	"Error Message": error.errorMessage.payload,
+	"Error Description": error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<json-logger:logger doc:name="TrainDelay_SFDC_ErrorLogger" doc:id="f3728f81-2f37-4415-aa3c-f72f92725ae6" config-ref="JSON_Logger_Config" message="TrainDelay_SFDC_ErrorLogger" priority="ERROR"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="SFDC PAPI End Logger" doc:id="16bf1060-3752-4ae2-b5f1-fe0d7bebd1da" config-ref="JSON_Logger_Config" message="SFDC PAPI End Logs" tracePoint="END"/>
 	</flow>
 	<flow name="train-services-calculationFlow" doc:id="0089d8b7-8056-4c11-b860-8faf67fbbc6c" >
 		<foreach doc:name="TrainServices_ForEach" doc:id="5aefc02b-07f2-48a2-a977-cd0359fe75a7" collection="#[vars.services]">
